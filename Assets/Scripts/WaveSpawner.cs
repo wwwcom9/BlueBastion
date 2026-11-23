@@ -52,6 +52,17 @@ public class WaveSpawner : MonoBehaviour
         }
 
         Debug.Log("所有波次生成完毕");
+
+        // 等场上敌人全部清空，才算守住
+        while (FindObjectsOfType<EnemyHealth>().Length > 0)
+        {
+            yield return new WaitForSeconds(0.5f);
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.Win();
+        }
     }
 
     private void SpawnOne()

@@ -41,8 +41,12 @@ public class EnemyMove : MonoBehaviour
             // 走完最后一个点 = 抵达终点（基地）
             if (currentIndex >= waypoints.Count)
             {
-                // 先简单销毁自己；后面会改成"扣基地血量再销毁"
-                Debug.Log("敌人抵达终点", this);
+                // 通知 GameManager 扣基地血量，然后销毁自己
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.EnemyLeaked();
+                }
+
                 Destroy(gameObject);
                 return;
             }
