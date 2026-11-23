@@ -2,7 +2,10 @@ using UnityEngine;
 
 /// <summary>
 /// 子弹：朝目标飞行，到达后造成伤害并销毁。
-/// 目标中途死亡（被销毁）时，子弹自己也消失，避免报空引用。
+/// 两种互不相关的附加效果，由塔配置（0 表示没有）：
+///   范围伤害 —— 命中点周围 splashRadius 内的敌人也受到一部分伤害
+///   范围减速 —— 命中点周围 slowRadius 内的敌人全部变慢
+/// 两者可以同时存在，也可以只有其中一个。
 /// </summary>
 public class Bullet : MonoBehaviour
 {
@@ -11,6 +14,24 @@ public class Bullet : MonoBehaviour
 
     [Header("伤害")]
     public float damage = 20f;
+
+    [Header("范围伤害半径（0 = 只有单体）")]
+    public float splashRadius = 0f;
+
+    [Range(0f, 1f)]
+    public float splashDamageRatio = 0.6f;
+
+    [Header("减速")]
+    [Range(0f, 0.9f)]
+    public float slowPercent = 0f;
+
+    public float slowDuration = 0f;
+
+    [Header("范围减速半径（0 = 只减速单体）")]
+    public float slowRadius = 0f;
+
+    // 特效颜色 = 发射这座塔的颜色
+    private Color effectColor = Color.white;
 
     private Transform target;
     private EnemyHealth targetHealth;
@@ -23,29 +44,94 @@ public class Bullet : MonoBehaviour
         targetHealth = t != null ? t.GetComponent<EnemyHealth>() : null;
     }
 
+    /// <summary>由塔调用，告诉子弹的范围伤害、减速参数和特效用色。</summary>
+    public void ConfigureEffects(float splashR, float splashRatio,
+                                 float slowP, float slowD, float slowR, Color color)
+    {
+        splashRadius = splashR;
+        splashDamageRatio = splashRatio;
+        slowPercent = slowP;
+        slowDuration = slowD;
+        slowRadius = slowR;
+        effectColor = color;
+    }
+
     private void Update()
     {
-        // 目标已经被销毁（比如被别的塔打死了），子弹就没必要存在了
         if (target == null)
         {
             Destroy(gameObject);
             return;
         }
 
-        // 朝目标飞行
         transform.position = Vector2.MoveTowards(
             transform.position,
             target.position,
             speed * Time.deltaTime);
 
-        // 到达目标
         if (Vector2.Distance(transform.position, target.position) < 0.1f)
         {
-            if (targetHealth != null)
-            {
-                targetHealth.TakeDamage(damage);
-            }
+            Hit(target.position);
             Destroy(gameObject);
+        }
+    }
+
+    private void Hit(Vector2 impactPoint)
+    {
+        // 1. 主目标：伤害 + 减速
+        if (targetHealth != null)
+        {
+            targetHealth.TakeDamage(damage);
+            ApplySlowTo(targetHealth.transform);
+        }
+
+        // 2. 范围伤害：命中点周围的敌人受到一部分伤害
+        if (splashRadius > 0f)
+        {
+            SplashEffect.Spawn(impactPoint, splashRadius, effectColor, 0.3f);
+
+            float splashDamage = damage * splashDamageRatio;
+
+            foreach (EnemyHealth e in FindObjectsOfType<EnemyHealth>())
+            {
+                if (e == null || e == targetHealth) continue;
+
+                if (Vector2.Distance(e.transform.position, impactPoint) <= splashRadius)
+                {
+                    e.TakeDamage(splashDamage);
+                }
+            }
+        }
+
+        // 3. 范围减速：命中点周围的敌人全部变慢（不改伤害）
+        if (slowRadius > 0f)
+        {
+            // 没有范围伤害时，用这一圈来显示"减速力场"的作用范围
+            if (splashRadius <= 0f)
+            {
+                SplashEffect.Spawn(impactPoint, slowRadius, effectColor, 0.35f);
+            }
+
+            foreach (EnemyHealth e in FindObjectsOfType<EnemyHealth>())
+            {
+                if (e == null) continue;
+
+                if (Vector2.Distance(e.transform.position, impactPoint) <= slowRadius)
+                {
+                    ApplySlowTo(e.transform);
+                }
+            }
+        }
+    }
+
+    private void ApplySlowTo(Transform t)
+    {
+        if (slowPercent <= 0f || t == null) return;
+
+        EnemyMove move = t.GetComponent<EnemyMove>();
+        if (move != null)
+        {
+            move.ApplySlow(slowPercent, slowDuration);
         }
     }
 }
