@@ -29,6 +29,12 @@ public class EnemyMove : MonoBehaviour
     private void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
+    }
+
+    private void Start()
+    {
+        // 在 Start 里记录本色：ApplySpec 在 Instantiate 之后才设颜色，
+        // 如果写在 Awake 会记到预制体的默认红色。
         if (sr != null) baseColor = sr.color;
     }
 

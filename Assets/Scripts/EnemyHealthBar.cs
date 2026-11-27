@@ -1,20 +1,22 @@
 using UnityEngine;
 
 /// <summary>
-/// 敌人头顶的血条。背景 + 填充两块，全部用代码生成的白色贴图拼出来，
-/// 不需要导入任何素材，也不需要手动摆 UI。
-/// 由 EnemyHealth 在 Start 时自动挂上去。
+/// 敌人头顶的血条 + 护盾条。全部用代码生成的白色贴图拼出来，
+/// 不需要导入素材，也不需要建 UI。
+/// 护盾条只在敌人有护盾时显示，位置在血条正上方。
 /// </summary>
 public class EnemyHealthBar : MonoBehaviour
 {
     private static Sprite whiteSprite;
 
     private EnemyHealth owner;
-    private SpriteRenderer fill;
-    private float width = 1f;
-    private float fillHeight = 0.09f;
+    private SpriteRenderer hpFill;
+    private SpriteRenderer shieldFill;
 
-    /// <summary>在敌人身上创建一个血条，返回它以便绑定数据。</summary>
+    private float width = 1f;
+    private float hpHeight = 0.09f;
+    private float shieldY = 0.06f;
+
     public static EnemyHealthBar Attach(Transform parent, float width, float height, float yOffset)
     {
         GameObject root = new GameObject("HealthBar");
@@ -23,7 +25,7 @@ public class EnemyHealthBar : MonoBehaviour
 
         Sprite sprite = GetWhiteSprite();
 
-        // 底：深色背景
+        // 生命条底
         GameObject bgGo = new GameObject("BG");
         bgGo.transform.SetParent(root.transform, false);
         SpriteRenderer bg = bgGo.AddComponent<SpriteRenderer>();
@@ -32,19 +34,31 @@ public class EnemyHealthBar : MonoBehaviour
         bg.sortingOrder = 20;
         bgGo.transform.localScale = new Vector3(width, height, 1f);
 
-        // 填充：会随血量缩短
-        GameObject fillGo = new GameObject("Fill");
-        fillGo.transform.SetParent(root.transform, false);
-        SpriteRenderer fr = fillGo.AddComponent<SpriteRenderer>();
-        fr.sprite = sprite;
-        fr.color = Color.green;
-        fr.sortingOrder = 21;
-        fillGo.transform.localScale = new Vector3(width, height * 0.72f, 1f);
+        // 生命填充
+        GameObject hpGo = new GameObject("HP");
+        hpGo.transform.SetParent(root.transform, false);
+        SpriteRenderer hp = hpGo.AddComponent<SpriteRenderer>();
+        hp.sprite = sprite;
+        hp.color = Color.green;
+        hp.sortingOrder = 21;
+        hpGo.transform.localScale = new Vector3(width, height * 0.72f, 1f);
+
+        // 护盾填充（在血条上方，更细）
+        GameObject shGo = new GameObject("Shield");
+        shGo.transform.SetParent(root.transform, false);
+        SpriteRenderer sh = shGo.AddComponent<SpriteRenderer>();
+        sh.sprite = sprite;
+        sh.color = new Color(0.35f, 0.75f, 1f);
+        sh.sortingOrder = 21;
+        shGo.transform.localScale = new Vector3(width, height * 0.42f, 1f);
+        shGo.transform.localPosition = new Vector3(0f, height * 0.72f, 0f);
 
         EnemyHealthBar bar = root.AddComponent<EnemyHealthBar>();
-        bar.fill = fr;
+        bar.hpFill = hp;
+        bar.shieldFill = sh;
         bar.width = width;
-        bar.fillHeight = height * 0.72f;
+        bar.hpHeight = height * 0.72f;
+        bar.shieldY = height * 0.72f;
         return bar;
     }
 
@@ -55,17 +69,37 @@ public class EnemyHealthBar : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (owner == null || fill == null) return;
+        if (owner == null) return;
 
-        float ratio = owner.HealthRatio;
-        float w = Mathf.Max(0.0001f, width * ratio);
+        // 生命条：从左侧缩短
+        if (hpFill != null)
+        {
+            float r = owner.HealthRatio;
+            ApplyFill(hpFill, r, hpHeight, 0f);
+            hpFill.color = Color.Lerp(Color.red, Color.green, r);
+        }
 
-        // 从左边开始缩短：中心点要跟着左边缘走
-        fill.transform.localScale = new Vector3(w, fillHeight, 1f);
-        fill.transform.localPosition = new Vector3(-width * 0.5f + w * 0.5f, 0f, 0f);
+        // 护盾条：没有护盾的敌人不显示
+        if (shieldFill != null)
+        {
+            if (owner.maxShield <= 0f)
+            {
+                shieldFill.enabled = false;
+            }
+            else
+            {
+                float r = owner.ShieldRatio;
+                shieldFill.enabled = r > 0.001f;
+                ApplyFill(shieldFill, r, hpHeight * 0.6f, shieldY);
+            }
+        }
+    }
 
-        // 满血绿色，残血红色
-        fill.color = Color.Lerp(Color.red, Color.green, ratio);
+    private void ApplyFill(SpriteRenderer fill, float ratio, float height, float y)
+    {
+        float w = Mathf.Max(0.0001f, width * Mathf.Clamp01(ratio));
+        fill.transform.localScale = new Vector3(w, height, 1f);
+        fill.transform.localPosition = new Vector3(-width * 0.5f + w * 0.5f, y, 0f);
     }
 
     private static Sprite GetWhiteSprite()

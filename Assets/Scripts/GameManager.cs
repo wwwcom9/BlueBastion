@@ -23,6 +23,15 @@ public class GameManager : MonoBehaviour
     public int BaseHealth { get; private set; }
     public bool IsGameOver { get; private set; }
     public bool IsWin { get; private set; }
+    public int CurrentWave { get; private set; }
+    public int TotalWaves { get; private set; } = 1;
+
+    /// <summary>由波次生成器调用，更新 HUD 上的波次进度。</summary>
+    public void SetWave(int current, int total)
+    {
+        CurrentWave = current;
+        TotalWaves = Mathf.Max(1, total);
+    }
 
     private GUIStyle hudStyle;
 
@@ -104,8 +113,8 @@ public class GameManager : MonoBehaviour
         }
 
         int alive = FindObjectsOfType<EnemyHealth>().Length;
-        GUI.Label(new Rect(12, 10, 800, 30),
-            $"HP {BaseHealth}/{maxBaseHealth}    Energy {Energy}    Enemies {alive}", hudStyle);
+        GUI.Label(new Rect(12, 10, 900, 30),
+            $"HP {BaseHealth}/{maxBaseHealth}    Energy {Energy}    Wave {CurrentWave}/{TotalWaves}    Enemies {alive}", hudStyle);
 
         if (IsGameOver) GUI.Label(new Rect(12, 46, 800, 30), "GAME OVER", hudStyle);
         if (IsWin) GUI.Label(new Rect(12, 46, 800, 30), "VICTORY", hudStyle);

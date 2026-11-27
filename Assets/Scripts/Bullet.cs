@@ -128,6 +128,10 @@ public class Bullet : MonoBehaviour
     {
         if (slowPercent <= 0f || t == null) return;
 
+        // 护盾是特殊机制：护盾没破之前免疫减速
+        EnemyHealth health = t.GetComponent<EnemyHealth>();
+        if (health != null && health.HasShield) return;
+
         EnemyMove move = t.GetComponent<EnemyMove>();
         if (move != null)
         {
