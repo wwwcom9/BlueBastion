@@ -93,4 +93,14 @@ public class EnemyHealth : MonoBehaviour
 
         Destroy(gameObject);
     }
+
+    /// <summary>被修复体治疗。已满血或已死亡返回 false。</summary>
+    public bool Heal(float amount)
+    {
+        if (IsDead || amount <= 0f) return false;
+        if (currentHealth >= maxHealth) return false;
+
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        return true;
+    }
 }

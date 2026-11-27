@@ -69,6 +69,21 @@ public class WaveSpawner : MonoBehaviour
                 reward = 20,
                 color = new Color(0.55f, 0.45f, 0.95f),
                 size = 1.15f
+            },
+
+            // 3 修复体：血最少但会给周围友军回血，应该优先集火
+            new EnemySpec
+            {
+                displayName = "Healer",
+                health = 70f,
+                shield = 0f,
+                speed = 1.8f,
+                reward = 18,
+                healAmount = 12f,
+                healInterval = 2f,
+                healRadius = 2.5f,
+                color = new Color(0.30f, 0.85f, 0.42f),
+                size = 1.05f
             }
         };
     }
@@ -81,12 +96,12 @@ public class WaveSpawner : MonoBehaviour
     {
         return new int[][]
         {
-            new int[] { 0, 0, 0, 0, 0 },                   // 第 1 波：纯蠕虫，教学
-            new int[] { 0, 0, 0, 1, 1 },                   // 第 2 波：加入疾行体
-            new int[] { 0, 0, 1, 1, 1, 2 },                // 第 3 波：首次出现护盾体
-            new int[] { 1, 1, 1, 1, 0, 0, 2 },             // 第 4 波：疾行体成群
-            new int[] { 1, 1, 2, 2, 0, 0, 0 },             // 第 5 波：护盾体加压
-            new int[] { 1, 1, 2, 2, 2, 0, 0, 0 }           // 第 6 波：最终波
+            new int[] { 0, 0, 0, 0, 0 },                          // 第 1 波：纯蠕虫，教学
+            new int[] { 0, 0, 0, 1, 1 },                          // 第 2 波：加入疾行体
+            new int[] { 0, 0, 1, 1, 1, 2 },                       // 第 3 波：首次出现护盾体
+            new int[] { 1, 1, 1, 1, 0, 0, 2, 3 },                 // 第 4 波：首次出现修复体
+            new int[] { 1, 1, 2, 2, 0, 0, 0, 3 },                 // 第 5 波：护盾 + 修复
+            new int[] { 1, 1, 2, 2, 2, 0, 0, 0, 3, 3 }            // 第 6 波：最终波，双修复体
         };
     }
 
@@ -138,6 +153,15 @@ public class WaveSpawner : MonoBehaviour
         if (health != null)
         {
             health.ApplySpec(spec);
+        }
+
+        // 修复体额外挂一个治疗组件（其他敌人不需要）
+        if (spec.healAmount > 0f)
+        {
+            EnemyHealer healer = enemy.gameObject.AddComponent<EnemyHealer>();
+            healer.healAmount = spec.healAmount;
+            healer.healInterval = spec.healInterval;
+            healer.healRadius = spec.healRadius;
         }
     }
 }

@@ -88,7 +88,8 @@ public class Bullet : MonoBehaviour
         // 2. 范围伤害：命中点周围的敌人受到一部分伤害
         if (splashRadius > 0f)
         {
-            SplashEffect.Spawn(impactPoint, splashRadius, effectColor, 0.3f);
+            // 限流：0.35 秒内同色光圈只出现一次，避免高频塔把画面刷满
+            SplashEffect.Spawn(impactPoint, splashRadius, effectColor, 0.28f, 0.8f, 0.35f);
 
             float splashDamage = damage * splashDamageRatio;
 
@@ -109,7 +110,7 @@ public class Bullet : MonoBehaviour
             // 没有范围伤害时，用这一圈来显示"减速力场"的作用范围
             if (splashRadius <= 0f)
             {
-                SplashEffect.Spawn(impactPoint, slowRadius, effectColor, 0.35f);
+                SplashEffect.Spawn(impactPoint, slowRadius, effectColor, 0.22f, 0.35f, 0.35f);
             }
 
             foreach (EnemyHealth e in FindObjectsOfType<EnemyHealth>())

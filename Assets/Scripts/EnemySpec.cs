@@ -21,6 +21,12 @@ public class EnemySpec
     [Header("击杀奖励能量")]
     public int reward = 10;
 
+    [Header("治疗：给周围友军回血（0 = 不治疗）")]
+    public float healAmount = 0f;
+
+    public float healInterval = 2f;
+    public float healRadius = 2.5f;
+
     [Header("身体颜色")]
     public Color color = Color.red;
 
